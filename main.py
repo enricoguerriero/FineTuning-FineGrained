@@ -34,11 +34,17 @@ std = config['std']
 if model_name == 'resnet':
     from SENet import SEResNet50
     model = SEResNet50(num_classes=10)
+else:
+    raise ValueError("Model not found")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if criteria == 'cross_entropy':
     criterion = nn.CrossEntropyLoss()
+else:
+    raise ValueError("Criterion not found")
 if optimz == 'adam':
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+else:
+    raise ValueError("Optimizer not found")
 
 print("Parameters loaded")
 
