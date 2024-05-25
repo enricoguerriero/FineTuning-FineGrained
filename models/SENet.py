@@ -11,13 +11,12 @@ class SEBlock(nn.Module):
             nn.Linear(in_channels // reduction, in_channels, bias=False),
             nn.Sigmoid()
         )
-        
+
     def forward(self, x):
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
         return x * y.expand_as(x)
-
 
 
 class SEBottleneck(nn.Module):
@@ -61,10 +60,13 @@ class SEBottleneck(nn.Module):
         return out
 
 
-
 class SEResNet50(nn.Module):
-    def __init__(self, num_classes=1000):
+    def __init__(self, num_classes=1000, freeze_layers_except_last=False, layers_to_freeze=None):
         super(SEResNet50, self).__init__()
+        self.num_classes = num_classes
+        self.freeze_layers_except_last = freeze_layers_except_last
+        self.layers_to_freeze = layers_to_freeze if layers_to_freeze is not None else []
+        
         resnet = models.resnet50(weights='ResNet50_Weights.DEFAULT')  # Load pre-trained ResNet-50
         self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
@@ -76,6 +78,16 @@ class SEResNet50(nn.Module):
         self.layer4 = resnet.layer4
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(2048, num_classes)  # Modify the fully connected layer to match the number of classes
+
+        if self.freeze_layers_except_last:
+            self.freeze_model_layers()
+            self.set_last_layer_trainable()
+        elif self.layers_to_freeze:
+            self.freeze_specific_layers()
+
+        self.total_params = sum(p.numel() for p in self.parameters())
+        self.trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        self.frozen_params = self.total_params - self.trainable_params
 
     def forward(self, x):
         x = self.conv1(x)
@@ -90,20 +102,50 @@ class SEResNet50(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
-    
-    def _make_layer(self, block, planes, blocks, stride=1, reduction=8):  # Adjusted reduction ratio
+
+    def _make_layer(self, block, planes, blocks, stride=1, reduction=8):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                # conv1x1(self.inplanes, planes * block.expansion, stride),
-                nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False), # scegli tra le due
+                nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, reduction))  # Adjusted reduction ratio
+        layers.append(block(self.inplanes, planes, stride, downsample, reduction))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, reduction=reduction))  # Adjusted reduction ratio
+            layers.append(block(self.inplanes, planes, reduction=reduction))
 
         return nn.Sequential(*layers)
+
+    def freeze_model_layers(self):
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def set_last_layer_trainable(self):
+        for param in self.fc.parameters():
+            param.requires_grad = True
+
+    def freeze_specific_layers(self):
+        for name, param in self.named_parameters():
+            if any(layer_name in name for layer_name in self.layers_to_freeze):
+                param.requires_grad = False
+
+    def get_params_info(self):
+        params_info = {
+            'total_params': self.total_params,
+            'trainable_params': self.trainable_params,
+            'frozen_params': self.frozen_params,
+            'layers': []
+        }
+        
+        for name, param in self.named_parameters():
+            params_info['layers'].append({
+                'name': name,
+                'requires_grad': param.requires_grad,
+                'num_params': param.numel()
+            })
+        
+        return params_info
+

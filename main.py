@@ -2,9 +2,10 @@ import yaml
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from utils import train_model, evaluate_model
-from utils import get_data_loaders
+from utils.utils import train_model, evaluate_model
+from utils.utils import get_data_loaders
 import time
+import os
 
 
 # Load config file
@@ -29,11 +30,17 @@ resize = config['resize']
 crop_size = config['crop_size']
 mean = config['mean']
 std = config['std']
+freeze_layers_except_last = config['freeze_layers_except_last']
+layers_to_freeze = config['layers_to_freeze']
 
 # Some order and other variables
+num_classes = len(os.listdir(data_dir + '/train'))
 if model_name == 'resnet':
-    from SENet import SEResNet50
-    model = SEResNet50(num_classes=10)
+    from models.SENet import SEResNet50
+    model = SEResNet50(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last, layers_to_freeze = layers_to_freeze)
+elif model_name == 'vit':
+    from models.ViT import ViT
+    model = ViT(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last, layers_to_freeze = layers_to_freeze)
 else:
     raise ValueError("Model not found")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,6 +54,8 @@ else:
     raise ValueError("Optimizer not found")
 
 print("Parameters loaded")
+
+print("Model info:\n", model.get_params_info())
 
 # Load data
 train_loader, val_loader, test_loader = get_data_loaders(data_dir, batch_size, resize, crop_size, mean, std)
