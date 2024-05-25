@@ -3,6 +3,28 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import time
 import torch
+import json
+
+def save_model_info(model_name, train_time, test_accuracy):
+    """
+    Save model information to info.txt file.
+
+    Args:
+    model (tf.keras.Model): The trained model.
+    history (tf.keras.callbacks.History): The history object returned by model.fit().
+    filename (str): The name of the file to save the information.
+    """
+    # Collect model information
+    model_info = {
+        "Model_name": model_name,
+        "train_time": train_time,
+        "test_accuracy": test_accuracy
+    }
+
+    # Open file in write mode and save information
+    with open("info.txt", 'w') as file:
+        json.dump(model_info, file, indent=4)
+
 
 
 def get_data_loaders(data_dir, batch_size=32,
@@ -48,7 +70,7 @@ def get_data_loaders(data_dir, batch_size=32,
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-            dropout_rate, num_epochs, device, patience, model_name):
+            dropout_rate, num_epochs, device, patience, model_name, file_name):
 
     best_val_loss = float('inf')
     counter = 0
@@ -118,7 +140,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             if counter >= patience:
                 print(f'Validation loss did not improve for {patience} epochs. Early stopping...')
                 break
-    
+        # save as a checkpoint
+        torch.save(model.state_dict(), "trained_models/" + file_name)
+        
     # writer.close()
     print('Training complete. Best validation accuracy: {:.4f}'.format(best_val_acc))
 

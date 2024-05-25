@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from utils.utils import train_model, evaluate_model
-from utils.utils import get_data_loaders
+from utils.utils import get_data_loaders, save_model_info
 import time
 import os
 
@@ -52,6 +52,8 @@ if optimz == 'adam':
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 else:
     raise ValueError("Optimizer not found")
+file_name = f'{model_name}_{data_dir}_{num_epochs}e_bs{batch_size}_lr{learning_rate}_dr{dropout_rate}_c{criteria}_o{optimz}_sg{scheduler_gamma}_sss{scheduler_step_size}_.pth'
+
 
 print("Parameters loaded")
 
@@ -67,9 +69,10 @@ print("\nStart training!\n")
 
 # Train model
 train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-            dropout_rate, num_epochs, device, patience, model_name)
+            dropout_rate, num_epochs, device, patience, model_name, file_name)
 
-print(f"\nEnd training!\nTraining time: {time.time() - start} seconds")
+train_time = time.time() - start
+print(f"\nEnd training!\nTraining time: {train_time} seconds")
 
 # Evaluate model
 accuracy = evaluate_model(model, test_loader, device)
@@ -77,5 +80,7 @@ accuracy = evaluate_model(model, test_loader, device)
 print('Test Accuracy: {:.4f}'.format(accuracy))
 
 # Save model
-file_name = f'{model_name}_{data_dir}_{num_epochs}e_bs{batch_size}_lr{learning_rate}_dr{dropout_rate}_c{criteria}_o{optimz}_sg{scheduler_gamma}_sss{scheduler_step_size}_.pth'
-torch.save(model.state_dict(), f'{model_name}_model.pth')
+torch.save(model.state_dict(), "trained_models/" + file_name)
+
+# Save model info
+save_model_info(model_name = model_name, train_time = train_time, test_accuracy = accuracy)
