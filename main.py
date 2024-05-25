@@ -32,17 +32,17 @@ crop_size = int(config['crop_size'])
 mean = list(config['mean'])
 std = list(config['std'])
 freeze_layers_except_last = bool(config['freeze_layers_except_last'])
-layers_to_freeze = list(config['layers_to_freeze'])
+# layers_to_freeze = list(config['layers_to_freeze'])
 
 # Some order and other variables
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 num_classes = len(os.listdir(data_dir + '/train'))
 if model_name == 'resnet':
     from models.SENet import SEResNet50
-    model = SEResNet50(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last, layers_to_freeze = layers_to_freeze).to(device)
+    model = SEResNet50(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last).to(device)
 elif model_name == 'vit':
     from models.ViT import ViT
-    model = ViT(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last, layers_to_freeze = layers_to_freeze).to(device)
+    model = ViT(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last).to(device)
 else:
     raise ValueError("Model not found")
 if criteria == 'cross_entropy':
@@ -63,8 +63,9 @@ print("Dataset: ", dataset)
 print("Batch size: ", batch_size)
 print("Num epochs: ", num_epochs)
 print("Num classes: ", num_classes)
+print("Learning Rate: ", learning_rate)
 print("Freeze all layers except last: ", freeze_layers_except_last)
-print("Frozen layers: ", layers_to_freeze)
+# print("Frozen layers: ", layers_to_freeze)
 
 print("Model info:\n", model.get_params_info())
 

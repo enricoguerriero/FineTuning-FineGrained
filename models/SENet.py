@@ -79,6 +79,7 @@ class SEResNet50(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(2048, num_classes)  # Modify the fully connected layer to match the number of classes
 
+        print(freeze_layers_except_last)
         if self.freeze_layers_except_last:
             self.freeze_model_layers()
             self.set_last_layer_trainable()
