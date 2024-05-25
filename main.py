@@ -13,26 +13,26 @@ with open('FineTuning-FineGrained/config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
 # Get parameters
-model_name = config['model_name']
-dataset = config['data_dir']
+model_name = str(config['model_name'])
+dataset = str(config['data_dir'])
 data_dir = 'datasets/' + dataset
-batch_size = config['batch_size']
-num_epochs = config['num_epochs']
-dropout_rate = config['dropout_rate']
-learning_rate = config['learning_rate']
-momentum = config['momentum']
-weight_decay = config['weight_decay']
-criteria = config['criteria']
-optimz = config['optimizer']
-scheduler_step_size = config['scheduler_step_size']
-scheduler_gamma = config['scheduler_gamma']
-patience = config['patience']
-resize = config['resize']
-crop_size = config['crop_size']
-mean = config['mean']
-std = config['std']
-freeze_layers_except_last = config['freeze_layers_except_last']
-layers_to_freeze = config['layers_to_freeze']
+batch_size = int(config['batch_size'])
+num_epochs = int(config['num_epochs'])
+dropout_rate = float(config['dropout_rate'])
+learning_rate = float(config['learning_rate'])
+momentum = float(config['momentum'])
+weight_decay = float(config['weight_decay'])
+criteria = str(config['criteria'])
+optimz = str(config['optimizer'])
+scheduler_step_size = int(config['scheduler_step_size'])
+scheduler_gamma = float(config['scheduler_gamma'])
+patience = int(config['patience'])
+resize = int(config['resize'])
+crop_size = int(config['crop_size'])
+mean = list(config['mean'])
+std = list(config['std'])
+freeze_layers_except_last = bool(config['freeze_layers_except_last'])
+layers_to_freeze = list(config['layers_to_freeze'])
 
 # Some order and other variables
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
