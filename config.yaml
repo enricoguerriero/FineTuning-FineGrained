@@ -1,5 +1,5 @@
-model_name: 'resnet' # 'resnet', 'vit'
-data_dir: 'cub' # 'cub', 'dogs', 'air'
+model_name: 'vit' # 'resnet', 'vit'
+data_dir: 'air' # 'cub', 'dogs', 'air'
 batch_size: 64
 num_epochs: 10
 dropout_rate: 0.5

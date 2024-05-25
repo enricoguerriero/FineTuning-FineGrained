@@ -22,8 +22,9 @@ def save_model_info(model_name, train_time, test_accuracy):
     }
 
     # Open file in write mode and save information
-    with open("info.txt", 'w') as file:
+    with open("info.txt", 'a') as file:
         json.dump(model_info, file, indent=4)
+        file.write("\n")
 
 def save_model(model, file_name):
     # Define the directory
