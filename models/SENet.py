@@ -84,6 +84,8 @@ class SEResNet50(nn.Module):
             self.set_last_layer_trainable()
         elif self.layers_to_freeze:
             self.freeze_specific_layers()
+        else:
+            print("no freeze")
 
         self.total_params = sum(p.numel() for p in self.parameters())
         self.trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -137,15 +139,15 @@ class SEResNet50(nn.Module):
             'total_params': self.total_params,
             'trainable_params': self.trainable_params,
             'frozen_params': self.frozen_params,
-            'layers': []
+            # 'layers': []
         }
         
-        for name, param in self.named_parameters():
-            params_info['layers'].append({
-                'name': name,
-                'requires_grad': param.requires_grad,
-                'num_params': param.numel()
-            })
+        # for name, param in self.named_parameters():
+        #     params_info['layers'].append({
+        #         'name': name,
+        #         'requires_grad': param.requires_grad,
+        #         'num_params': param.numel()
+        #     })
         
         return params_info
 

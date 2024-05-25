@@ -25,6 +25,17 @@ def save_model_info(model_name, train_time, test_accuracy):
     with open("info.txt", 'w') as file:
         json.dump(model_info, file, indent=4)
 
+def save_model(model, file_name):
+    # Define the directory
+    dir_name = "trained_models/"
+    
+    # Create the directory if it doesn't exist
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    
+    # Save the model's state dictionary to the specified file
+    file_path = os.path.join(dir_name, file_name)
+    torch.save(model.state_dict(), file_path)
 
 
 def get_data_loaders(data_dir, batch_size=32,
@@ -129,7 +140,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             torch.save(model.state_dict(), model_name)
         if scheduler_bool:
             scheduler.step()
-        print('-'*10, "\n")
+        print('', '-'*10, "\n")
 
         # Early stopping
         if val_loss < best_val_loss:
@@ -141,7 +152,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 print(f'Validation loss did not improve for {patience} epochs. Early stopping...')
                 break
         # save as a checkpoint
-        torch.save(model.state_dict(), "trained_models/" + file_name)
+        save_model(model, file_name)
         
     # writer.close()
     print('Training complete. Best validation accuracy: {:.4f}'.format(best_val_acc))
