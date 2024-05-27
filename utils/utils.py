@@ -82,26 +82,24 @@ def get_data_loaders(data_dir, batch_size=32,
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-            dropout_rate, num_epochs, device, patience, model_name, file_name):
+                num_epochs, device, patience, model_name, file_name):
 
     best_val_loss = float('inf')
+    best_val_acc = 0.0
     counter = 0
+    
     if scheduler_step_size is not None and scheduler_gamma is not None:
         scheduler_bool = True
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma)
     else:
         scheduler_bool = False
-    if dropout_rate is not None:
-        dropout_bool = True
-        dropout = torch.nn.Dropout(dropout_rate)
-    else:
-        dropout_bool = False
 
-    best_val_acc = 0.0
     for epoch in range(num_epochs):
         print("\n", '-'*10)
         if scheduler_bool:
             current_lr = scheduler.get_last_lr()[0]
+        else:
+            current_lr = optimizer.param_groups[0]['lr']
         print(f'Epoch {epoch+1}/{num_epochs}, Current Learning Rate: {current_lr}')     
         e_start = time.time()
         
@@ -112,8 +110,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
-            if dropout_bool:
-                outputs = dropout(outputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -125,25 +121,17 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         # Validation phase
         val_loss, val_acc = evaluate_model(model, val_loader, criterion, device)
         
-        # # Log the loss and accuracy to TensorBoard
-        # writer.add_scalar('Loss/Train', epoch_loss, epoch)
-        # writer.add_scalar('Loss/Validation', val_loss, epoch)
-        # writer.add_scalar('Accuracy/Train', train_acc, epoch)
-        # writer.add_scalar('Accuracy/Validation', val_acc, epoch)
-        
         print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Val Loss: {val_loss:.4f}')
         print(f'Train Accuracy: {train_acc:.4f}, Val Accuracy: {val_acc:.4f}')
         print('Epoch time: ', time.time() - e_start)
         
-        # Check for best validation accuracy
+        # Check for best validation accuracy and save model
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), model_name)
-        if scheduler_bool:
-            scheduler.step()
-        print('', '-'*10, "\n")
-
-        # Early stopping
+            print(f'Best model saved with val accuracy: {best_val_acc:.4f}')
+        
+        # Check for best validation loss and early stopping
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             counter = 0
@@ -152,10 +140,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             if counter >= patience:
                 print(f'Validation loss did not improve for {patience} epochs. Early stopping...')
                 break
+        
+        if scheduler_bool:
+            scheduler.step()
+
         # save as a checkpoint
         save_model(model, file_name)
         
-    # writer.close()
     print('Training complete. Best validation accuracy: {:.4f}'.format(best_val_acc))
 
 def evaluate_model(model, data_loader, criterion=None, device='cuda'):

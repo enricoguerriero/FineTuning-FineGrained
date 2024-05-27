@@ -1,9 +1,9 @@
 model_name: 'vit' # 'resnet', 'vit'
-data_dir: 'air' # 'cub', 'dogs', 'air'
-batch_size: 64
-num_epochs: 10
+data_dir: 'aircraft' # 'cub', 'dogs', 'air'
+batch_size: 32
+num_epochs: 20
 dropout_rate: 0.5
-learning_rate: 0.0001
+learning_rate: 0.001
 momentum: 0.9
 weight_decay: 0.0001
 criteria: 'cross_entropy' # 'cross_entropy'
