@@ -6,6 +6,7 @@ from utils.utils import train_model, evaluate_model
 from utils.utils import get_data_loaders, save_model_info, save_model
 import time
 import os
+import torchvision
 
 
 # Load config file
@@ -31,20 +32,29 @@ resize = int(config['resize'])
 crop_size = int(config['crop_size'])
 mean = list(config['mean'])
 std = list(config['std'])
-freeze_layers_except_last = bool(config['freeze_layers_except_last'])
+#freeze_layers_except_last = bool(config['freeze_layers_except_last'])
 # layers_to_freeze = list(config['layers_to_freeze'])
 
 # Some order and other variables
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_classes = len(os.listdir(data_dir + '/train'))
+num_classes = 102#len(os.listdir(data_dir + '/train'))
 if model_name == 'resnet':
     from models.SENet import SEResNet50
-    model = SEResNet50(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last).to(device)
+    model = SEResNet50(num_classes=num_classes, dropout_prob = dropout_rate).to(device)
 elif model_name == 'vit':
     from models.ViT import ViT
-    model = ViT(num_classes=num_classes, freeze_layers_except_last = freeze_layers_except_last).to(device)
+    model = ViT(num_classes=num_classes).to(device)
 else:
-    raise ValueError("Model not found")
+    model = torchvision.models.efficientnet_v2_s(weights=torchvision.models.EfficientNet_V2_S_Weights.IMAGENET1K_V1)
+    # Freeze the first layer
+    first_layer = model.features[0]
+    for param in first_layer.parameters():
+        param.requires_grad = False
+    # Modify the classifier for the desired number of output classes
+    in_features = model.classifier[1].in_features  # Access the in_features of the second layer of the classifier
+    model.classifier[1] = nn.Linear(in_features, num_classes)
+    model = model.to(device)
+    # raise ValueError("Model not found")
 if criteria == 'cross_entropy':
     criterion = nn.CrossEntropyLoss()
 else:
@@ -53,7 +63,7 @@ if optimz == 'adam':
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 else:
     raise ValueError("Optimizer not found")
-file_name = f'{model_name}_{dataset}_{num_epochs}e_bs{batch_size}_lr{learning_rate}_dr{dropout_rate}_c{criteria}_o{optimz}_sg{scheduler_gamma}_sss{scheduler_step_size}_llf{freeze_layers_except_last}.pth'
+file_name = f'{model_name}_{dataset}_{num_epochs}e_bs{batch_size}_lr{learning_rate}_dr{dropout_rate}_c{criteria}_o{optimz}_sg{scheduler_gamma}_sss{scheduler_step_size}.pth'
 
 print("Parameters loaded")
 
@@ -76,7 +86,6 @@ print("Resize: ", resize)
 print("Crop size: ", crop_size)
 print("Mean: ", mean)
 print("Std: ", std)
-print("Freeze all layers except last: ", freeze_layers_except_last)
 # print("Frozen layers: ", layers_to_freeze)
 
 # print("\nModel info:\n", model.get_params_info())
@@ -91,7 +100,7 @@ print("\nStart training!\n")
 
 # Train model
 train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-            dropout_rate, num_epochs, device, patience, model_name, file_name)
+            num_epochs, device, patience, model_name, file_name)
 
 train_time = time.time() - start
 print(f"\nEnd training!\nTraining time: {train_time} seconds")
@@ -104,4 +113,4 @@ print('Test Accuracy: {:.4f}'.format(accuracy))
 # Save model
 save_model(model, file_name)
 # Save model info
-save_model_info(model_name = model_name, train_time = train_time, test_accuracy = accuracy)
+save_model_info(model_name = file_name, train_time = train_time, test_accuracy = accuracy)

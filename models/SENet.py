@@ -1,6 +1,8 @@
+import torch
 import torch.nn as nn
 from torchvision import models
 
+# SEBlock Definition
 class SEBlock(nn.Module):
     def __init__(self, in_channels, reduction=16):
         super(SEBlock, self).__init__()
@@ -18,11 +20,11 @@ class SEBlock(nn.Module):
         y = self.fc(y).view(b, c, 1, 1)
         return x * y.expand_as(x)
 
-
+# SEBottleneck Definition
 class SEBottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, in_planes, planes, stride=1, downsample=None, reduction=16):
+    def __init__(self, in_planes, planes, stride=1, downsample=None, reduction=16, dropout_prob=0.5):
         super(SEBottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
@@ -34,6 +36,7 @@ class SEBottleneck(nn.Module):
         self.se = SEBlock(planes * self.expansion, reduction)
         self.downsample = downsample
         self.stride = stride
+        self.dropout = nn.Dropout(dropout_prob)
 
     def forward(self, x):
         residual = x
@@ -50,6 +53,7 @@ class SEBottleneck(nn.Module):
         out = self.bn3(out)
 
         out = self.se(out)
+        out = self.dropout(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -59,38 +63,37 @@ class SEBottleneck(nn.Module):
 
         return out
 
-
+# SEResNet50 Definition
 class SEResNet50(nn.Module):
-    def __init__(self, num_classes=1000, freeze_layers_except_last=False, layers_to_freeze=None):
+    def __init__(self, num_classes=1000, dropout_prob=0.5):
         super(SEResNet50, self).__init__()
         self.num_classes = num_classes
-        self.freeze_layers_except_last = freeze_layers_except_last
-        self.layers_to_freeze = layers_to_freeze if layers_to_freeze is not None else []
         
-        resnet = models.resnet50(weights='ResNet50_Weights.DEFAULT')  # Load pre-trained ResNet-50
+        self.inplanes = 64
+        resnet = models.resnet50(weights='IMAGENET1K_V2')
         self.conv1 = resnet.conv1
         self.bn1 = resnet.bn1
         self.relu = resnet.relu
         self.maxpool = resnet.maxpool
-        self.layer1 = resnet.layer1
-        self.layer2 = resnet.layer2
-        self.layer3 = resnet.layer3
-        self.layer4 = resnet.layer4
+
+        self.layer1 = self._make_layer(SEBottleneck, 64, 3)
+        self.layer2 = self._make_layer(SEBottleneck, 128, 4, stride=2)
+        self.layer3 = self._make_layer(SEBottleneck, 256, 6, stride=2)
+        self.layer4 = self._make_layer(SEBottleneck, 512, 3, stride=2)
+
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(2048, num_classes)  # Modify the fully connected layer to match the number of classes
+        self.fc1 = nn.Linear(512 * SEBottleneck.expansion, 512)
+        self.fc2 = nn.Linear(512, num_classes)
 
-        print(freeze_layers_except_last)
-        if self.freeze_layers_except_last:
-            self.freeze_model_layers()
-            self.set_last_layer_trainable()
-        elif self.layers_to_freeze:
-            self.freeze_specific_layers()
-        else:
-            print("no freeze")
+        self.dropout = nn.Dropout(p=dropout_prob)
 
-        self.total_params = sum(p.numel() for p in self.parameters())
-        self.trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
-        self.frozen_params = self.total_params - self.trainable_params
+        # Freeze initial layers
+        for param in self.conv1.parameters():
+            param.requires_grad = False
+        for param in self.bn1.parameters():
+            param.requires_grad = False
+        for param in self.layer1.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         x = self.conv1(x)
@@ -103,10 +106,14 @@ class SEResNet50(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = self.dropout(x)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
         return x
 
-    def _make_layer(self, block, planes, blocks, stride=1, reduction=8):
+    def _make_layer(self, block, planes, blocks, stride=1, reduction=16):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
@@ -121,34 +128,3 @@ class SEResNet50(nn.Module):
             layers.append(block(self.inplanes, planes, reduction=reduction))
 
         return nn.Sequential(*layers)
-
-    def freeze_model_layers(self):
-        for param in self.parameters():
-            param.requires_grad = False
-
-    def set_last_layer_trainable(self):
-        for param in self.fc.parameters():
-            param.requires_grad = True
-
-    def freeze_specific_layers(self):
-        for name, param in self.named_parameters():
-            if any(layer_name in name for layer_name in self.layers_to_freeze):
-                param.requires_grad = False
-
-    def get_params_info(self):
-        params_info = {
-            'total_params': self.total_params,
-            'trainable_params': self.trainable_params,
-            'frozen_params': self.frozen_params,
-            # 'layers': []
-        }
-        
-        # for name, param in self.named_parameters():
-        #     params_info['layers'].append({
-        #         'name': name,
-        #         'requires_grad': param.requires_grad,
-        #         'num_params': param.numel()
-        #     })
-        
-        return params_info
-
