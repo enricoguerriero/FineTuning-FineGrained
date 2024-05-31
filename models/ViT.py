@@ -17,17 +17,3 @@ class ViT(nn.Module):
         return output, intermediates
 
 
-    
-model = ViT(50)
-
-def count_layers(model):
-    total_layers = 0
-    for name, buh in model.named_children():
-        print(name)
-        print(buh)
-        total_layers += 1
-    return total_layers
-
-# Assuming `model` is an instance of your ViT model
-num_layers = count_layers(model)
-print("Number of layers in the model:", num_layers)

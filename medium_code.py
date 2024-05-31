@@ -78,7 +78,7 @@ from torchvision.transforms import v2
 import lightning as L
 from torch.utils.data import DataLoader, Subset
 
-class EuroSAT_RGB_DataModule(L.LightningDataModule):
+class cub(L.LightningDataModule):
     '''
     Lightning datamodule for the EuroSAT dataset
     '''
@@ -101,13 +101,14 @@ class EuroSAT_RGB_DataModule(L.LightningDataModule):
         transforms = v2.Compose([v2.ToImage(),
                                  v2.Resize(size=(224,224), interpolation=2),
                                  v2.ToDtype(torch.float32, scale=True),
-                                 v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+                                 v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                                 ])
         
         data = ImageFolder(self.data_root, transform=transforms)
         targets = np.asarray(data.targets)
+        self.num_classes = len(data.classes)
 
-        train_ix, test_ix = train_test_split(np.arange(len(data.targets)), test_size=5400, stratify=targets)
+        train_ix, test_ix = train_test_split(np.arange(len(data.targets)), test_size=len(data.targets)*0.2, stratify=targets)
         train_ix, valid_ix = train_test_split(train_ix, test_size=2700, stratify=targets[train_ix])
                                 
         self.train_data = Subset(data, train_ix)

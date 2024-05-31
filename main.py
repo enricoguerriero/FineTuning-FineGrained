@@ -7,6 +7,7 @@ from utils.utils import get_data_loaders, save_model_info, save_model
 import time
 import os
 import torchvision
+import torchvision.models as models
 
 
 # Load config file
@@ -36,15 +37,16 @@ std = list(config['std'])
 # layers_to_freeze = list(config['layers_to_freeze'])
 
 # Some order and other variables
+unfreeze = False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_classes = 102#len(os.listdir(data_dir + '/train'))
-if model_name == 'resnet':
+num_classes = len(os.listdir(data_dir + '/train'))
+if model_name == 'seresnet':
     from models.SENet import SEResNet50
     model = SEResNet50(num_classes=num_classes, dropout_prob = dropout_rate).to(device)
 elif model_name == 'vit':
     from models.ViT import ViT
     model = ViT(num_classes=num_classes).to(device)
-else:
+elif model_name == 'efficientnet':
     model = torchvision.models.efficientnet_v2_s(weights=torchvision.models.EfficientNet_V2_S_Weights.IMAGENET1K_V1)
     # Freeze the first layer
     first_layer = model.features[0]
@@ -54,13 +56,26 @@ else:
     in_features = model.classifier[1].in_features  # Access the in_features of the second layer of the classifier
     model.classifier[1] = nn.Linear(in_features, num_classes)
     model = model.to(device)
-    # raise ValueError("Model not found")
+elif model_name == 'seresnet2':
+    from models.SENet2 import CustomSqueezeNet
+    model = CustomSqueezeNet(num_classes).to(device)
+    unfreeze = True 
+elif model_name == 'vit2':
+    from models.ViT2 import ViTFineTuner
+    model = ViTFineTuner(num_classes).to(device)
+    unfreeze = True
+else:
+    raise ValueError("Model not found")
 if criteria == 'cross_entropy':
     criterion = nn.CrossEntropyLoss()
 else:
     raise ValueError("Criterion not found")
 if optimz == 'adam':
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+elif optimz == 'sgd':
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+elif optimz == 'adamw':
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 else:
     raise ValueError("Optimizer not found")
 file_name = f'{model_name}_{dataset}_{num_epochs}e_bs{batch_size}_lr{learning_rate}_dr{dropout_rate}_c{criteria}_o{optimz}_sg{scheduler_gamma}_sss{scheduler_step_size}.pth'
@@ -99,8 +114,8 @@ start = time.time()
 print("\nStart training!\n")
 
 # Train model
-train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-            num_epochs, device, patience, model_name, file_name)
+model = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
+            num_epochs, device, patience, model_name, file_name, unfreeze)
 
 train_time = time.time() - start
 print(f"\nEnd training!\nTraining time: {train_time} seconds")

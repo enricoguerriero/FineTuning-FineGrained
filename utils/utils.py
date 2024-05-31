@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 import time
 import torch
 import json
+import torch.nn as nn
 
 def save_model_info(model_name, train_time, test_accuracy):
     """
@@ -82,7 +83,7 @@ def get_data_loaders(data_dir, batch_size=32,
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-                num_epochs, device, patience, model_name, file_name):
+                num_epochs, device, patience, model_name, file_name, unfreeze=False):
 
     best_val_loss = float('inf')
     best_val_acc = 0.0
@@ -102,6 +103,11 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             current_lr = optimizer.param_groups[0]['lr']
         print(f'Epoch {epoch+1}/{num_epochs}, Current Learning Rate: {current_lr}')     
         e_start = time.time()
+
+        if unfreeze:
+            if epoch < len(list(model.features)):
+                model.unfreeze_layer(-(epoch + 1))
+                optimizer = nn.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
         
         # Training phase
         model.train()
@@ -148,6 +154,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         save_model(model, file_name)
         
     print('Training complete. Best validation accuracy: {:.4f}'.format(best_val_acc))
+
+    return model
 
 def evaluate_model(model, data_loader, criterion=None, device='cuda'):
     model.eval()
