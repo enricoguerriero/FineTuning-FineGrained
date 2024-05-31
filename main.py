@@ -8,6 +8,7 @@ import time
 import os
 import torchvision
 import torchvision.models as models
+import wandb
 
 
 # Load config file
@@ -105,6 +106,14 @@ print("Std: ", std)
 
 # print("\nModel info:\n", model.get_params_info())
 
+# Initialize wandb
+wandb.login()  # @edit
+wandb.init(project='FINEGRAINING'+model_name+dataset,
+    name = 'antonello'
+    config=config
+)
+print("\nWandb initialized")
+
 # Load data
 train_loader, val_loader, test_loader = get_data_loaders(data_dir, batch_size, resize, crop_size, mean, std)
 
@@ -115,10 +124,13 @@ print("\nStart training!\n")
 
 # Train model
 model = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-            num_epochs, device, patience, model_name, file_name, unfreeze)
+            num_epochs, device, patience, model_name, file_name, dataset, unfreeze)
 
 train_time = time.time() - start
 print(f"\nEnd training!\nTraining time: {train_time} seconds")
+wandb.log({
+        "training_time": f"{(train_time):.3} seconds",
+        })
 
 # Evaluate model
 accuracy = evaluate_model(model, test_loader, criterion = None, device = device)

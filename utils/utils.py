@@ -5,6 +5,7 @@ import time
 import torch
 import json
 import torch.nn as nn
+import wandb
 
 def save_model_info(model_name, train_time, test_accuracy):
     """
@@ -83,7 +84,7 @@ def get_data_loaders(data_dir, batch_size=32,
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
-                num_epochs, device, patience, model_name, file_name, unfreeze=False):
+                num_epochs, device, patience, model_name, file_name, dataset_name, unfreeze=False):
 
     best_val_loss = float('inf')
     best_val_acc = 0.0
@@ -96,6 +97,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         scheduler_bool = False
 
     for epoch in range(num_epochs):
+        e_model_name = model_name + '_epoch_' + str(epoch+1) + 'data' + dataset_name + '.pt'
         print("\n", '-'*10)
         if scheduler_bool:
             current_lr = scheduler.get_last_lr()[0]
@@ -131,10 +133,18 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(f'Train Accuracy: {train_acc:.4f}, Val Accuracy: {val_acc:.4f}')
         print('Epoch time: ', time.time() - e_start)
         
+        wandb.log({
+            "epoch":epoch+1,
+            "train/loss":epoch_loss,
+            "train/accuracy":train_acc,
+            "val/loss":val_loss,
+            "val/accuracy":val_acc
+        })
+
         # Check for best validation accuracy and save model
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), model_name)
+            torch.save(model.state_dict(), 'checkpoints/' + e_model_name)
             print(f'Best model saved with val accuracy: {best_val_acc:.4f}')
         
         # Check for best validation loss and early stopping
