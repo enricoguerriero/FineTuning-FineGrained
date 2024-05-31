@@ -203,4 +203,4 @@ else:
 # Save model
 save_model(model, file_name)
 # Save model info
-save_model_info(model_name = file_name, train_time = train_time, test_accuracy = accuracy)
+# save_model_info(model_name = file_name, train_time = train_time, test_accuracy = accuracy)

@@ -255,3 +255,5 @@ def load_exam_test(dir_name, resize, crop, mean, std):
     test_dataset = TestDataset("/home/disi/ml/datasets/comp/test", transform = test_transform)
 
     test_loader = DataLoader(test_dataset, batch_size = 1, shuffle = False)
+
+    return test_loader
