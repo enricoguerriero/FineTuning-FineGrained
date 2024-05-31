@@ -1,16 +1,16 @@
-model_name: 'vit2' # 'resnet', 'vit'
+model_name: 'seresnet2' # 'resnet', 'vit'
 data_dir: 'comp' # 'cub', 'dogs', 'air'
 batch_size: 32
-num_epochs: 0
+num_epochs: 20
 dropout_rate: 0.5
 learning_rate: 0.001
 momentum: 0.9
 weight_decay: 0.0001
 criteria: 'cross_entropy' # 'cross_entropy'
 optimizer: 'adamw' # 'adam', 'sgd'
-scheduler_step_size: 5
+scheduler_step_size: 10
 scheduler_gamma: 0.1
-patience: 3
+patience: 5
 resize: 256
 crop_size: 224
 mean: [0.485, 0.456, 0.406]

@@ -145,9 +145,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(f'Epoch {epoch+1}/{num_epochs}, Current Learning Rate: {current_lr}')     
         e_start = time.time()
 
-        # if unfreeze:
-        #     model.unfreeze_layer(-(epoch + 1))
-        #     optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
+        if unfreeze:
+            if epoch < 13:
+                model.unfreeze_layer(-(epoch + 1))
+                optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
         
         # Training phase
         model.train()
