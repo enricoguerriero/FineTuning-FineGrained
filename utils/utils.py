@@ -121,6 +121,39 @@ def get_data_loaders_2(data_dir, batch_size=32,
 
     return train_loader, val_loader
 
+def get_data_loaders_3(data_dir, batch_size=32, resize=(256, 256), crop=(224, 224), mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+
+    train_transform = transforms.Compose([
+        transforms.Resize(resize),
+        transforms.RandomCrop(crop),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(10),  
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),  
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+
+    val_transform = transforms.Compose([
+        transforms.Resize(resize),
+        transforms.CenterCrop(crop),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+
+    trainset = datasets.OxfordIIITPet(root=data_dir, split = 'trainval',
+                                             download=True, transform=train_transform)
+    train_size = int(0.8 * len(trainset))  # 80% for training
+    val_size = len(trainset) - train_size  # 20% for validation
+    train_set, val_set = random_split(trainset, [train_size, val_size])
+
+    test_set = datasets.OxfordIIITPet(root=data_dir, split = 'test',
+                                            download=True, transform=val_transform)
+
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=4)
+    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
+
+    return train_loader, val_loader, test_loader
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
                 num_epochs, device, patience, model_name, file_name, dataset_name, unfreeze=False):

@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"name": "intromlproject-1",
+			"path": "../../intromlproject-1"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}

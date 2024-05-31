@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from utils.utils import train_model, evaluate_model
-from utils.utils import get_data_loaders, save_model_info, save_model, get_data_loaders_2, load_exam_test
+from utils.utils import get_data_loaders, save_model_info, save_model
+from utils.utils import get_data_loaders_2, load_exam_test, get_data_loaders_3
 import time
 import os
 import torchvision
@@ -116,7 +117,7 @@ print("\nWandb initialized")
 
 # Load data
 if dataset != 'comp':
-    train_loader, val_loader, test_loader = get_data_loaders(data_dir, batch_size, resize, crop_size, mean, std)
+    train_loader, val_loader, test_loader = get_data_loaders_3(data_dir, batch_size, resize, crop_size, mean, std)
 else:
     train_loader, val_loader = get_data_loaders_2(data_dir, batch_size, resize, crop_size, mean, std)
 
