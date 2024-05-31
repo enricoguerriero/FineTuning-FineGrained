@@ -2,7 +2,6 @@ import torch
 from torch import nn, optim
 from torchvision import models
 
-# Define a custom model with dropout
 class CustomSqueezeNet(nn.Module):
     def __init__(self, num_classes, dropout_rate=0.5):
         super(CustomSqueezeNet, self).__init__()
@@ -18,17 +17,22 @@ class CustomSqueezeNet(nn.Module):
         # Replace the classifier with a new one
         self.squeezenet.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1, 1), stride=(1, 1))
         self.num_classes = num_classes
-    
+
     def forward(self, x):
         for i, layer in enumerate(self.squeezenet.features):
             x = layer(x)
-            if not layer.requires_grad:
+            if self._has_frozen_parameters(layer):
                 x = self.dropout_layers[i](x)
         
         x = self.squeezenet.classifier(x)
         x = x.view(x.size(0), self.num_classes)
         return x
     
+    def _has_frozen_parameters(self, layer):
+        return any(param.requires_grad == False for param in layer.parameters())
+    
     def unfreeze_layer(self, index):
-        layer = self.squeezenet.features[index]
-        layer.requires_grad = True
+        if index < 14:
+            layer = self.squeezenet.features[index]
+            for param in layer.parameters():
+                param.requires_grad = True

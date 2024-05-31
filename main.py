@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from utils.utils import train_model, evaluate_model
-from utils.utils import get_data_loaders, save_model_info, save_model
+from utils.utils import get_data_loaders, save_model_info, save_model, get_data_loaders_2
 import time
 import os
 import torchvision
@@ -109,13 +109,16 @@ print("Std: ", std)
 # Initialize wandb
 wandb.login()  # @edit
 wandb.init(project='FINEGRAINING'+model_name+dataset,
-    name = 'antonello'
+    name = 'antonello',
     config=config
 )
 print("\nWandb initialized")
 
 # Load data
-train_loader, val_loader, test_loader = get_data_loaders(data_dir, batch_size, resize, crop_size, mean, std)
+if dataset != 'comp':
+    train_loader, val_loader, test_loader = get_data_loaders(data_dir, batch_size, resize, crop_size, mean, std)
+else:
+    train_loader, val_loader = get_data_loaders_2(data_dir, batch_size, resize, crop_size, mean, std)
 
 print("\nData loaded")
 
@@ -131,12 +134,71 @@ print(f"\nEnd training!\nTraining time: {train_time} seconds")
 wandb.log({
         "training_time": f"{(train_time):.3} seconds",
         })
+if dataset != 'comp':
+    # Evaluate model
+    accuracy = evaluate_model(model, test_loader, criterion = None, device = device)
+    print('Test Accuracy: {:.4f}'.format(accuracy))
+else:  
+    model.eval()
 
-# Evaluate model
-accuracy = evaluate_model(model, test_loader, criterion = None, device = device)
+    from http.client import responses
+    import requests
+    import json
 
-print('Test Accuracy: {:.4f}'.format(accuracy))
+    def get_label_ids(train_dir):
+        label_ids = []
+        classes = sorted(os.listdir(train_dir))
+        for class_name in classes:
+            if os.path.isdir(os.path.join(train_dir, class_name)):
+                class_id = class_name.split('_')[0]
+                label_ids.append(class_id)
+        return label_ids
 
+
+    label_ids = get_label_ids('/home/disi/ml/comp/train')
+
+
+
+
+    # Initialize an empty dictionary to store predictions
+    preds = {}
+
+    # Disable gradient calculation for inference
+    with torch.no_grad():
+        for images, images_names in test_loader:
+            # Move images to the same device as the model
+            images = images.to(next(model.parameters()).device)
+            
+            # Get model predictions
+            outputs = model(images)
+            
+            # Get the predicted labels
+            _, predicted = torch.max(outputs, 1)
+            
+            # Store the predictions in the dictionary
+            for i, pred in enumerate(predicted):
+                preds[images_names[i]] = label_ids[pred.item()]
+
+
+
+
+    def submit(results, url="https://competition-production.up.railway.app/results/"):
+        res = json.dumps(results)
+        response = requests.post(url, res)
+        try:
+            result = json.loads(response.text)
+            print(f"accuracy is {result['accuracy']}")
+        except json.JSONDecodeError:
+            print(f"ERROR: {response.text}")
+
+    res = {
+        "images": preds,
+        "groupname": "Angel Warrior of the Balls"
+    }
+
+
+    submit(res)
+    
 # Save model
 save_model(model, file_name)
 # Save model info

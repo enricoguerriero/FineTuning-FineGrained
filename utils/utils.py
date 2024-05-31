@@ -6,6 +6,7 @@ import torch
 import json
 import torch.nn as nn
 import wandb
+import torch.optim as optim
 
 def save_model_info(model_name, train_time, test_accuracy):
     """
@@ -83,6 +84,38 @@ def get_data_loaders(data_dir, batch_size=32,
     return train_loader, val_loader, test_loader
 
 
+def get_data_loaders_2(data_dir, batch_size=32,
+                     resize=(256, 256), crop=(224, 224),
+                     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+    train_dir = os.path.join(data_dir, 'train')
+    val_dir = os.path.join(data_dir, 'val')
+
+    train_transform = transforms.Compose([
+        transforms.Resize(resize),
+        transforms.RandomCrop(crop),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(10),  
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),  
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+
+    val_transform = transforms.Compose([
+        transforms.Resize(resize),
+        transforms.CenterCrop(crop),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+
+    train_dataset = datasets.ImageFolder(train_dir, transform=train_transform)
+    val_dataset = datasets.ImageFolder(val_dir, transform=val_transform)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+
+    return train_loader, val_loader
+
+
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
                 num_epochs, device, patience, model_name, file_name, dataset_name, unfreeze=False):
 
@@ -107,9 +140,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         e_start = time.time()
 
         if unfreeze:
-            if epoch < len(list(model.features)):
-                model.unfreeze_layer(-(epoch + 1))
-                optimizer = nn.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
+            model.unfreeze_layer(-(epoch + 1))
+            optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
         
         # Training phase
         model.train()
@@ -188,3 +220,32 @@ def evaluate_model(model, data_loader, criterion=None, device='cuda'):
         avg_loss = running_loss / len(data_loader.dataset)
         return avg_loss, accuracy
     return accuracy
+
+
+def load_exam_test(dir_name, resize, crop, mean, std):
+
+    class TestDataset(Dataset):
+        def __init__(self, test_dir, transform=None):
+            self.test_dir = test_dir
+            self.image_files = [f for f in os.listdir(test_dir) if os.path.isfile(os.path.join(test_dir, f))]
+            self.transform = transform
+
+        def __len__(self):
+            return len(self.image_files)
+
+        def __getitem__(self, idx):
+            img_name = os.path.join(self.test_dir, self.image_files[idx])
+            image = Image.open(img_name)
+            if self.transform:
+                image = self.transform(image)
+            return image, self.image_files[idx]
+    
+    test_transform = transforms.Compose([
+        transforms.Resize(resize),
+        transforms.CenterCrop(crop),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+    test_dataset = TestDataset("/home/disi/ml/datasets/comp/test", transform = test_transforms)
+
+    test_loader = DataLoader(test_dataset, batch_size = 1, shuffle = False)
