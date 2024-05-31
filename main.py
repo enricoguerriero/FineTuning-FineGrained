@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from utils.utils import train_model, evaluate_model
-from utils.utils import get_data_loaders, save_model_info, save_model, get_data_loaders_2
+from utils.utils import get_data_loaders, save_model_info, save_model, get_data_loaders_2, load_exam_test
 import time
 import os
 import torchvision
@@ -139,6 +139,7 @@ if dataset != 'comp':
     accuracy = evaluate_model(model, test_loader, criterion = None, device = device)
     print('Test Accuracy: {:.4f}'.format(accuracy))
 else:  
+    test_loader = load_exam_test("/home/disi/ml/datasets/comp/test", resize, crop_size, mean, std)
     model.eval()
 
     from http.client import responses
@@ -155,7 +156,7 @@ else:
         return label_ids
 
 
-    label_ids = get_label_ids('/home/disi/ml/comp/train')
+    label_ids = get_label_ids('/home/disi/ml/datasets/comp/train')
 
 
 

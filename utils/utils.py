@@ -7,6 +7,12 @@ import json
 import torch.nn as nn
 import wandb
 import torch.optim as optim
+import os
+import torchvision.datasets as datasets
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
+from PIL import Image
 
 def save_model_info(model_name, train_time, test_accuracy):
     """
@@ -139,9 +145,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(f'Epoch {epoch+1}/{num_epochs}, Current Learning Rate: {current_lr}')     
         e_start = time.time()
 
-        if unfreeze:
-            model.unfreeze_layer(-(epoch + 1))
-            optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
+        # if unfreeze:
+        #     model.unfreeze_layer(-(epoch + 1))
+        #     optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
         
         # Training phase
         model.train()
@@ -246,6 +252,6 @@ def load_exam_test(dir_name, resize, crop, mean, std):
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
-    test_dataset = TestDataset("/home/disi/ml/datasets/comp/test", transform = test_transforms)
+    test_dataset = TestDataset("/home/disi/ml/datasets/comp/test", transform = test_transform)
 
     test_loader = DataLoader(test_dataset, batch_size = 1, shuffle = False)
