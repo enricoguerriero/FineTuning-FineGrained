@@ -1,5 +1,5 @@
 model_name: 'seresnet2' # 'resnet', 'vit'
-data_dir: 'cub' # 'cub', 'dogs', 'air'
+data_dir: 'air' # 'cub', 'dogs', 'air'
 batch_size: 32
 num_epochs: 20
 dropout_rate: 0.5

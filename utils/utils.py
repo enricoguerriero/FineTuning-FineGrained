@@ -140,7 +140,7 @@ def get_data_loaders_3(data_dir, batch_size=32, resize=(256, 256), crop=(224, 22
         transforms.Normalize(mean=mean, std=std)
     ])
 
-    trainset = datasets.OxfordIIITPet(root=data_dir, split = 'trainval',
+    trainset = datasets.FGVCAircraft(root=data_dir, split = 'trainval',
                                              download=True, transform=train_transform)
     train_size = int(0.8 * len(trainset))  # 80% for training
     val_size = len(trainset) - train_size  # 20% for validation
