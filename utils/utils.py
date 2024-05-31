@@ -153,7 +153,9 @@ def get_data_loaders_3(data_dir, batch_size=32, resize=(256, 256), crop=(224, 22
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=4)
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    return train_loader, val_loader, test_loader
+    num_classes = len(test_set.classes)
+
+    return train_loader, val_loader, test_loader, num_classes
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler_gamma, scheduler_step_size, 
                 num_epochs, device, patience, model_name, file_name, dataset_name, unfreeze=False):

@@ -38,10 +38,18 @@ std = list(config['std'])
 #freeze_layers_except_last = bool(config['freeze_layers_except_last'])
 # layers_to_freeze = list(config['layers_to_freeze'])
 
+# Load data
+if dataset != 'comp':
+    train_loader, val_loader, test_loader, num_classes = get_data_loaders_3(data_dir, batch_size, resize, crop_size, mean, std)
+else:
+    train_loader, val_loader = get_data_loaders_2(data_dir, batch_size, resize, crop_size, mean, std)
+
+print("\nData loaded")
+
 # Some order and other variables
 unfreeze = False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_classes = len(os.listdir(data_dir + '/train'))
+# num_classes = len(os.listdir(data_dir + '/train'))
 if model_name == 'seresnet':
     from models.SENet import SEResNet50
     model = SEResNet50(num_classes=num_classes, dropout_prob = dropout_rate).to(device)
@@ -114,14 +122,6 @@ wandb.init(project='FINEGRAINING'+model_name+dataset,
     config=config
 )
 print("\nWandb initialized")
-
-# Load data
-if dataset != 'comp':
-    train_loader, val_loader, test_loader = get_data_loaders_3(data_dir, batch_size, resize, crop_size, mean, std)
-else:
-    train_loader, val_loader = get_data_loaders_2(data_dir, batch_size, resize, crop_size, mean, std)
-
-print("\nData loaded")
 
 start = time.time()
 print("\nStart training!\n")
