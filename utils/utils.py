@@ -146,7 +146,7 @@ def get_data_loaders_3(data_dir, batch_size=32, resize=(256, 256), crop=(224, 22
     val_size = len(trainset) - train_size  # 20% for validation
     train_set, val_set = random_split(trainset, [train_size, val_size])
 
-    test_set = datasets.OxfordIIITPet(root=data_dir, split = 'test',
+    test_set = datasets.FGVCAircraft(root=data_dir, split = 'test',
                                             download=True, transform=val_transform)
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4)
